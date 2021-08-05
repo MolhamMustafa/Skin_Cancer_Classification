@@ -813,3 +813,5 @@ acc_whole = scores_whole[1] * 100
 print('Accuracy after applying on the whole datadet is  (2nd model)', 
       round(acc_whole,1),'%', sep ='')
 loss_whole = scores_whole[0]
+
+# END

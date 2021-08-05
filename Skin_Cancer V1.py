@@ -205,6 +205,7 @@ localization_dx = pd.get_dummies(csv_df[['dx','localization']])
 names = localization_dx.columns.str.split('dx_')
 names = names.tolist()
 new_names = []
+
 for i in range(len(names)):
     if len(names[i]) == 2:
         new_names.append(names[i][1])
@@ -213,6 +214,7 @@ for i in range(len(names)):
 # Create the adjusted localization headers
 names = localization_dx.columns.str.split('localization_')
 names = names.tolist()
+
 for i in range(len(names)):
     if len(names[i]) == 2:
         new_names.append(names[i][1])
@@ -811,6 +813,3 @@ acc_whole = scores_whole[1] * 100
 print('Accuracy after applying on the whole datadet is  (2nd model)', 
       round(acc_whole,1),'%', sep ='')
 loss_whole = scores_whole[0]
-
-
-# New Comment

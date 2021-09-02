@@ -8,6 +8,10 @@ Created on Sun Jun 13 12:25:33 2021
 # Import Main Libraries
 # =========================================================================
 
+##
+# Import Required Libraries
+#
+
 import pandas as pd
 import numpy as np
 import os
@@ -29,59 +33,166 @@ from scipy import stats # For statistics purpose
 from sklearn.preprocessing import LabelEncoder # Convert lables into numbers
 import datetime
 import statistics
+        
+
 
 # =========================================================================
 # Importing the data
 # =========================================================================
 
-# Capture the start time for importing the data
-starttime = datetime.datetime.now()
+##
+# Data upload class combines the csv file along with the image.jpg files in one dataframe
+#
+class Data_Upload:
+    
+    ##
+    # Define the required paths and the start time for importing the data
+    #
+    def __init__(self):
+        self.starttime = datetime.datetime.now()
+        self.main_path = os.path.join('D:/University of Huddersfield','9) Individual Project','Potential Data','Skin Cancer','Data')
+        self.csv_path = os.path.join('D:/University of Huddersfield','9) Individual Project','Potential Data','Skin Cancer','Data','HAM10000_metadata.csv')
+        self.image_path = {os.path.splitext(os.path.basename(x))[0]: x for x in glob(os.path.join(self.main_path, '*', '*.jpg'))}
+
+    ##
+    # Read the csv file as dataframe (pandas)
+    #
+    def Read_CSV(self):
+        self.stepstarttime = datetime.datetime.now()
+        self.csv_df = pd.read_csv(self.csv_path)
+        print()
+        print('csv data imported successfully')
+        print('**Below is the data head**')
+        print(self.csv_df.head())
+        print('time taken for this step is ', datetime.datetime.now() - self.stepstarttime)
+        print()
+        print()
+        
+        
+    ##
+    # Import the path of each image to the dataframe (csv_df)
+    #
+    def Get_Image_Paths(self):
+        self.stepstarttime = datetime.datetime.now()
+        self.csv_df['ImagePaths'] = self.csv_df['image_id'].map(self.image_path.get)
+        print()
+        print('The path for each image is appended to the dataframe in column "ImagePaths"')
+        print('**Below is the data head**')
+        print(self.csv_df.head())
+        print('time taken for this step is ', datetime.datetime.now() - self.stepstarttime)
+        print()
+        print()
+        
+    
+    ##
+    # Append image to new colomn in the dataframe (image dimentions = 32 * 32)
+    #
+    def Import_Images_to_DataFrame(self):
+        self.stepstarttime = datetime.datetime.now()
+        self.csv_df['image'] = self.csv_df['ImagePaths'].map(lambda x: np.asarray(Image.open(x).resize((32,32))))
+        print()
+        print('Images imported to "image" column with dimentions 32*32')
+        print('**Below is the data head**')
+        print(self.csv_df.head())
+        print('time taken for this step is ', datetime.datetime.now() - self.stepstarttime)
+        print()
+        print()
+        
+        
+    ##
+    # Save the created DataFrame in new csv file in the same folder
+    #
+    def Save_Data(self):
+        self.stepstarttime = datetime.datetime.now()
+        self.savepath = os.path.join('D:/University of Huddersfield','9) Individual Project','Coding','Full_Data.csv')
+        self.csv_df.to_csv(self.savepath, index = False)
+        print()
+        print('Dataframe is saved in ', self.savepath)
+        print('time taken for this step is ', datetime.datetime.now() - self.stepstarttime)
+        print()
+        print()
+    
+    ##
+    # Recalling the data
+    # to get the whole colums make the column variable = 0
+    # to get all data except lesion_id and image_path make columns = 1
+    #   
+    def recall_dataframe(self, columns):
+        if columns == 0:
+            return self.csv_df
+        elif columns == 1:
+            return self.csv_df[self.csv_df.columns.values[[1,2,3,4,5,6,8]]]
+        else:
+            return self.csv_df[[columns]]
+    
+    ##
+    # Print sample images for each lesion
+    #
+    def Sample_Images(self):
+        self.n_samples = 5 # set gte number of samples per lesion type
+        # Plot the sample
+        fig, self.m_axs = plt.subplots(7, self.n_samples, figsize = (4* self.n_samples, 3*7))
+        for self.n_axs, (type_name, type_rows) in zip(self.m_axs, 
+                                         self.csv_df.sort_values(['dx']).groupby('dx')):
+            self.n_axs[0].set_title(type_name)
+            for c_ax, (_, c_row) in zip(self.n_axs, type_rows.sample(self.n_samples, random_state=1234).iterrows()):
+                c_ax.imshow(c_row['image'])
+                c_ax.axis('off')
+    
+                
+DataUpload = Data_Upload() # the main class name
+DataUpload.Read_CSV() # read the csv file
+DataUpload.Get_Image_Paths() # append the path of each image to the csv dataframe
+DataUpload.Import_Images_to_DataFrame() # append the matrix for each image (32*32) to the main dataframe
+#DataUpload.Save_Data() # save the full data in one csv file
+#csv_df = DataUpload.recall_dataframe(0) # Store the dataframe in a new object
+DataUpload.Sample_Images() #Print 5 sample images for each lesion type
 
 
-# Create the csv path
-csv_path = os.path.join('D:/University of Huddersfield','9) Individual Project','Potential Data','Skin Cancer','Data','HAM10000_metadata.csv')
-
-# Read the .csv file
-csv_df = pd.read_csv(csv_path)
-main_path = os.path.join('D:/University of Huddersfield','9) Individual Project','Potential Data','Skin Cancer','Data')
-
-
-# Create the Image path for each image
-image_path = {os.path.splitext(os.path.basename(x))[0]: x for x in glob(os.path.join(main_path, '*', '*.jpg'))}
-
-# Add the image path column in the csv table
-csv_df['ImagePath'] = csv_df['image_id'].map(image_path.get)
-
-
-# Import images in a new column based on the path of each
-csv_df['image'] = csv_df['ImagePath'].map(lambda x: np.asarray(Image.open(x).resize((32,32))))
-
-# Calculate the total time taken to import the data
-print('Time taken to import the whole data is', datetime.datetime.now() - starttime)
-
-
-# Check the values for each skin lesion type
-print(csv_df.dx.value_counts()) # the output shows data inbalance
-
-
-# =========================================================================
-# Print sample for the uploaded images
-# =========================================================================
-
-# Show sample of images
-n_samples = 5  # number of samples for plotting
-# Plot sample of images
-fig, m_axs = plt.subplots(7, n_samples, figsize = (4*n_samples, 3*7))
-for n_axs, (type_name, type_rows) in zip(m_axs, 
-                                         csv_df.sort_values(['dx']).groupby('dx')):
-    n_axs[0].set_title(type_name)
-    for c_ax, (_, c_row) in zip(n_axs, type_rows.sample(n_samples, random_state=1234).iterrows()):
-        c_ax.imshow(c_row['image'])
-        c_ax.axis('off')
 
 # =========================================================================
 # Data Analysis & Deep Dive
 # =========================================================================
+
+##
+# Data Exploration and Descriptive Analysis
+#
+class Descriptive_Analysis:
+    
+    # provides data exploration (Nulls, duplicates, data type, initial statistics)
+    # in case of numerical column it will provide main statistics
+    # in case of categorical it will provide frequency table
+    # in case of all columns selected (0 or1) it will provide data summary
+    def Data_Exploration(self,column):
+        if column == 1 or column == 0:
+            print()
+            print('Data Summary')
+            return DataUpload.recall_dataframe(column).info()
+        else:
+            if str(DataUpload.recall_dataframe(column).dtypes[0]) != 'object':
+                print()
+                print('Main Statistics for', column)
+                print(DataUpload.recall_dataframe(column).describe())
+                print()
+                print('Number of true duplications vs. false duplications')
+                return DataUpload.recall_dataframe(column).duplicated().value_counts()
+            else:
+                print()
+                print('Frequency Table for', column)
+                print(DataUpload.recall_dataframe(column).value_counts())
+                print()
+                print('Number of true duplications vs. false duplications')
+                return DataUpload.recall_dataframe(column).duplicated().value_counts()
+            
+DesAnalysis = Descriptive_Analysis()
+DesAnalysis.Data_Exploration('localization')
+        
+
+##
+# Getting the main statistics for age after removing the 0s and null values
+DataUpload.recall_dataframe(0)[(DataUpload.recall_dataframe(0).age != 0) &
+                               (DataUpload.recall_dataframe(0).age.notnull())]['age'].describe()
+
 
 # Create path to save charts in better resolution
 charts_path = os.path.join('D:/University of Huddersfield',

@@ -154,15 +154,19 @@ DataUpload.Sample_Images() #Print 5 sample images for each lesion type
 # Data Analysis & Deep Dive
 # =========================================================================
 
+Figures_path = r'D:\University of Huddersfield\9) Individual Project\Coding\Figures'
+
 ##
 # Data Exploration and Descriptive Analysis
 #
 class Descriptive_Analysis:
     
+    ##
     # provides data exploration (Nulls, duplicates, data type, initial statistics)
-    # in case of numerical column it will provide main statistics
-    # in case of categorical it will provide frequency table
-    # in case of all columns selected (0 or1) it will provide data summary
+    # in case of numerical column it will return main statistics
+    # in case of categorical it will return frequency table
+    # in case of all columns selected (0 or1) it will return data summary
+    #
     def Data_Exploration(self,column):
         if column == 1 or column == 0:
             print()
@@ -184,177 +188,228 @@ class Descriptive_Analysis:
                 print('Number of true duplications vs. false duplications')
                 return DataUpload.recall_dataframe(column).duplicated().value_counts()
             
+    ##
+    # Descriptive analysis graph
+    # deal with numeric data only
+    # to get the overall column plots without filters, set the 'filters' = 0
+    # to get the automatic graph title, set "graph_title" = 0
+    # to avoid saving the image in local drive, set "save_folder_path" = 0
+    # NOTE: enter the folder path like this --> r'path'
+    #
+    def Des_Graphs_Num (self, column, filters, graph_title, save_folder_path):
+        if column == 0 or column == 1:
+            print('This fuction acts on a single feature only')
+        else:
+            if str(DataUpload.recall_dataframe(column).dtypes[0]) != 'object':
+                if filters == 0:
+                    print()
+                    print(column, 'Main Statistics')
+                    print(DataUpload.recall_dataframe(column).describe())
+                    print()
+                    print(column, 'Distance Plot')
+                    
+                    # Set the graph title
+                    if graph_title == 0:
+                        self.title = column + ' Distance Plot'
+                    else:
+                        self.title = graph_title
+                    
+                    sns.distplot(DataUpload.recall_dataframe(column), color= 'green',
+                    hist_kws=dict(edgecolor="black", linewidth=1))
+                    plt.title(self.title)
+                    
+                    # Set the save condition
+                    if save_folder_path != 0:
+                        plt.savefig(save_folder_path + '\\{v} distplot.png'.format(v = column), dpi=300)
+                        print('Graph saved undel the title:', '\\{v} distplot.png'.format(v = column))
+
+                        
+                else:
+                    self.filter_items = DataUpload.recall_dataframe(0)[filters].unique()
+                    for f in self.filter_items:
+                        print()
+                        print(f ,column, 'Main Statistics')
+                        print(DataUpload.recall_dataframe(0)[DataUpload.recall_dataframe(0)[filters] == f][column].describe())
+                        print()
+                        print(column, 'Distance Plot')
+                        
+                        # Set the graph title
+                        if graph_title == 0:
+                            self.title = f + ' ' + column + ' Distance Plot'
+                        else:
+                            self.title = f + graph_title
+                        
+                        sns.distplot(DataUpload.recall_dataframe(0)[DataUpload.recall_dataframe(0)[filters] == f][column], color= 'green',
+                        hist_kws=dict(edgecolor="black", linewidth=1))
+                        plt.title(self.title)
+                        
+                        # Set the save condition
+                        if save_folder_path != 0:
+                            plt.savefig(save_folder_path + '\\{fil} {v} distplot.png'.format(fil = f, v = column), dpi=300)
+                        plt.clf()
+            else:
+                print('for categorical features, please use "Des_Graphs_Cat"')
+                
+                
+    ##
+    # Descriptive analysis for categorical data
+    # Same features as the previous one, but deals with categorical data
+    #
+    def Des_Graphs_Cat(self, column, filters, graph_title, save_folder_path, Title_Font_Size):
+        
+        # define the graph lables
+        self.labels = DataUpload.recall_dataframe(1)[column].value_counts().index.tolist()
+        
+                # Set the graph title
+        if graph_title == 0:
+            self.title = column + ' Frequency'
+        else:
+            self.title = graph_title
+        
+        ##
+        # Bar chart
+        #
+        
+        # auto set x labels fontsize
+        if len(self.labels) > 7:
+            mpl.rcParams['font.size'] = 7.0
+            f, ax = plt.subplots(figsize=(13,5))
+        plt.bar(self.labels,DataUpload.recall_dataframe(1)[column].value_counts(), color = 'green', ec = 'black')
+        for i in range(len(self.labels)):
+            plt.text(i,DataUpload.recall_dataframe(1)[column].value_counts()[i], DataUpload.recall_dataframe(1)[column].value_counts() [i],
+             ha = 'center', va = 'bottom')
+        #plt.ylim([0,7500])
+        plt.title(self.title, fontsize = Title_Font_Size)
+        plt.savefig(save_folder_path + '\\{v} frequency.png'.format(v = column), dpi=300)
+        print('Graph saved undel the title:', '\\{v} frequency.png'.format(v = column))
+        plt.clf()
+
+        ##
+        # Pie chart
+        #
+        
+        # auto set the lable sizes
+        if len(self.labels) > 7:
+            mpl.rcParams['font.size'] = 6.0 # set the test size
+        plt.pie(DataUpload.recall_dataframe(1)[column].value_counts(), labels = self.labels, autopct='%1.1f%%')
+        plt.title(self.title + ' Pie Chart', fontsize = Title_Font_Size)
+        #plt.title('Proportion of each Localization')
+        plt.savefig(save_folder_path + '\\{v} pie chart.png'.format(v = column), dpi=300)
+        print('Graph saved undel the title:', '\\{v} pie chart.png'.format(v = column))
+
+
+    ##
+    # Doing correlation matrix for all the data features
+    #
+    
+    def Overall_Correlations(self, save_folder_path):
+        
+        # create the correlation dataset (subset from the original data)
+        self.corr_df = DataUpload.recall_dataframe(1)[['dx', 'dx_type', 'age', 'sex','localization']]
+        
+        self.header_list = self.corr_df.columns.values.tolist()
+        self.header_list.remove('age')
+        
+        # convert categorical variables into numeric
+        le = LabelEncoder()
+        for i in self.header_list:
+            le.fit(self.corr_df[i])
+            LabelEncoder()
+            self.corr_df[i + '_label'] = le.transform(self.corr_df[i])
+            print(i, 'encoded successfully')
+        
+        # create the correlation matrix
+        self.corr_df = self.corr_df.drop(self.header_list, axis = 1)
+        self.new_heads = self.corr_df.columns.values.tolist()
+        self.new_heads = self.corr_df.columns[1:].str.split('_label')
+        self.new_headers = ['age']
+        for i in range(len(self.new_heads)):
+            self.new_headers.append(self.new_heads[i][0])
+            
+        self.corr_df.columns = self.new_headers # adjsut the table column names
+        
+        # Drow the graph
+        self.corr_mat = sns.heatmap(self.corr_df.corr(), annot = True
+                    ,cmap = "YlGnBu")
+        self.corr_mat.set_yticklabels(self.corr_mat.get_yticklabels(), rotation=45)
+        if save_folder_path != 0:
+            plt.savefig(save_folder_path + '\\Overall Corr. Matrix.png', dpi=300)
+        plt.clf()
+            
+    ##
+    # Correlation between each lesion type and the localization
+    #
+    
+    def dx_localization_Correlations (self, save_folder_path):
+        # Create the dummy variables for localization and dx
+        self.localization_dx = pd.get_dummies(DataUpload.recall_dataframe(1)[['dx','localization']])
+        
+        # create the adjusted dx headers
+        self.names = self.localization_dx.columns.str.split('dx_')
+        self.names = self.names.tolist()
+        self.new_names = []
+        
+        for i in range(len(self.names)):
+            if len(self.names[i]) == 2:
+                self.new_names.append(self.names[i][1])
+                print(self.names[i],'adjusted and added successfully')
+        
+        # Create the adjusted localization headers
+        self.names = self.localization_dx.columns.str.split('localization_')
+        self.names =self. names.tolist()
+        
+        for i in range(len(self.names)):
+            if len(self.names[i]) == 2:
+                self.new_names.append(self.names[i][1])
+                print(self.names[i],'adjusted successfully')
+        
+        # Replace the localization_dx column names
+        self.localization_dx.columns = self.new_names
+        
+        
+        # create the confusion matrix
+        # Full matrix
+        self.corrMatrix = self.localization_dx.corr()
+        sns.heatmap(self.corrMatrix, annot=True, annot_kws={"size": 3})
+        if save_folder_path != 0:
+            plt.savefig(save_folder_path + '\\Loc dx Corr matrix.png', dpi=300)
+        plt.clf()
+        
+        # Shrinked matrix
+        self.new_corrMatrix = self.corrMatrix[DataUpload.recall_dataframe(1).dx.unique()]
+        self.new_corrMatrix = self.new_corrMatrix.loc[DataUpload.recall_dataframe(1).localization.unique()]
+        self.loc_dx_corr = sns.heatmap(self.new_corrMatrix, annot=True, 
+                                  annot_kws={"size": 6}, cmap="YlGnBu")
+        
+        self.loc_dx_corr.set_yticklabels(self.loc_dx_corr.get_yticklabels(), rotation=45)
+        if save_folder_path != 0:
+            plt.savefig(save_folder_path + '\\Shrink loc dx Corr matrix.png', dpi=300)
+        
+        # Print the max and min correlations for each lesion type
+        for i in self.new_corrMatrix:
+            print('max % in', i, 'is', max(self.new_corrMatrix[i]),
+                  'and min % is', min(self.new_corrMatrix[i]))
+        
+
+
 DesAnalysis = Descriptive_Analysis()
 DesAnalysis.Data_Exploration('localization')
-        
+DesAnalysis.Des_Graphs_Num('age','sex' ,0, Figures_path) # Descriptive analysis graph for numerical features
+DesAnalysis.Des_Graphs_Cat('dx_type',0 ,0, Figures_path, 8) # # Descriptive analysis graph for categorical features
+DesAnalysis.Overall_Correlations(Figures_path) # Overall correlation matrix
+DesAnalysis.dx_localization_Correlations(Figures_path) # Correlation matrix focused on dx and localization only
+
+
 
 ##
 # Getting the main statistics for age after removing the 0s and null values
+#
 DataUpload.recall_dataframe(0)[(DataUpload.recall_dataframe(0).age != 0) &
                                (DataUpload.recall_dataframe(0).age.notnull())]['age'].describe()
 
 
-# Create path to save charts in better resolution
-charts_path = os.path.join('D:/University of Huddersfield',
-                           '8) Machine Learning','Assignments',
-                           'Assignment II')
 
-# Show the data distribution for dx column
-#-----------------------------------------
-labels = csv_df.dx.value_counts().index.tolist() # define the graph lables
-
-# Pie chart
  
-
-# Bar chart
-plt.bar(labels,csv_df.dx.value_counts(), color = 'green', ec = 'black')
-for i in range(len(labels)):
-    plt.text(i,csv_df.dx.value_counts()[i], csv_df.dx.value_counts()[i],
-             ha = 'center', va = 'bottom')
-plt.ylim([0,7500])
-plt.title('Lesion Type Count', fontsize = 8)
-plt.savefig(charts_path + '\\dx bar.png', dpi=300)
-
-
-# Show the data distribution for localization column
-#----------------------------------------------------
-labels = csv_df.localization.value_counts().index.tolist() # define the graph lables
-
-# Pie chart
-mpl.rcParams['font.size'] = 6.0 # set the test size
-plt.pie(csv_df.localization.value_counts(), labels = labels,
-        autopct='%1.1f%%')
-plt.title('Proportion of each Localization')
-plt.savefig(charts_path + '\\localization pie.png', dpi=300)
-
-# Bar chart
-mpl.rcParams['font.size'] = 7.0 # set the test size
-f, ax = plt.subplots(figsize=(13,5))
-plt.bar(labels,csv_df.localization.value_counts(), color = 'green', 
-        ec = 'black')
-for i in range(len(labels)):
-    plt.text(i,csv_df.localization.value_counts()[i],
-             csv_df.localization.value_counts()[i],
-             ha = 'center', va = 'bottom')
-plt.title('Localization Count', fontsize = 14)
-plt.savefig(charts_path + '\\localization bar.png', dpi=300)
-
-# Show the data distribution for sex column
-#----------------------------------------------------
-labels = csv_df.sex.value_counts().index.tolist() # define the graph lables
-
-# Pie chart
-mpl.rcParams['font.size'] = 6.0 # set the test size
-plt.pie(csv_df.sex.value_counts(), labels = labels,
-        autopct='%1.1f%%')
-plt.title('Proportion of each Gender')
-plt.savefig(charts_path + '\\Gender pie.png', dpi=300)
-
-# Bar chart
-mpl.rcParams['font.size'] = 7.0 # set the test size
-f, ax = plt.subplots(figsize=(13,5))
-plt.bar(labels,csv_df.sex.value_counts(), color = 'green', 
-        ec = 'black')
-for i in range(len(labels)):
-    plt.text(i,csv_df.sex.value_counts()[i],
-             csv_df.sex.value_counts()[i],
-             ha = 'center', va = 'bottom')
-plt.title('Gender Count', fontsize = 14)
-plt.savefig(charts_path + '\\Gender bar.png', dpi=300)
-
-
-# Distance Plot for Age
-#----------------------------------------------------
-sns.distplot(csv_df.age, color= 'green',
-             hist_kws=dict(edgecolor="black", linewidth=1))
-plt.title('Age Distance Plot')
-plt.savefig(charts_path + '\\Age distplot.png', dpi=300)
-
-
-# Correlation Matrix
-#-------------------
-
-# create csv copy with the required features for correlation
-df_corr = csv_df[['dx','dx_type','age','sex','localization']]
-
-header_list = df_corr.columns.values.tolist()
-header_list.remove('age')
-
-# change categorical variables into numeric
-le = LabelEncoder()
-for i in header_list:
-    le.fit(df_corr[i])
-    LabelEncoder()
-    df_corr[i + '_label'] = le.transform(df_corr[i])
-    print(i, 'encoded successfully')
-
-# create the correlation matrix
-df_corr = df_corr.drop(header_list, axis = 1)
-new_heads = df_corr.columns.values.tolist()
-new_heads = df_corr.columns[1:].str.split('_label')
-new_headers = ['age']
-for i in range(len(new_heads)):
-    new_headers.append(new_heads[i][0])
-    
-df_corr.columns = new_headers # adjsut the table column names
-
-# Drow the graph
-corr_mat = sns.heatmap(df_corr.corr(), annot = True
-            ,cmap = "YlGnBu")
-corr_mat.set_yticklabels(corr_mat.get_yticklabels(), rotation=45)
-plt.savefig(charts_path + '\\Correlation Matrix.png', dpi=300)
-
-
-
-# Locatization to Lesion Type correlation
-#------------------------------------------
-
-# Create the dummy variables for localization and dx
-localization_dx = pd.get_dummies(csv_df[['dx','localization']])
-
-# create the adjusted dx headers
-names = localization_dx.columns.str.split('dx_')
-names = names.tolist()
-new_names = []
-
-for i in range(len(names)):
-    if len(names[i]) == 2:
-        new_names.append(names[i][1])
-        print(names[i],'adjusted and added successfully')
-
-# Create the adjusted localization headers
-names = localization_dx.columns.str.split('localization_')
-names = names.tolist()
-
-for i in range(len(names)):
-    if len(names[i]) == 2:
-        new_names.append(names[i][1])
-        print(names[i],'adjusted successfully')
-
-# Replace the localization_dx column names
-localization_dx.columns = new_names
-
-
-# create the confusion matrix
-# Full matrix
-corrMatrix = localization_dx.corr()
-sns.heatmap(corrMatrix, annot=True, annot_kws={"size": 3})
-plt.savefig(charts_path + '\\Loc dx Corr matrix.png', dpi=300)
-
-
-# Shrinked matrix
-new_corrMatrix = corrMatrix[csv_df.dx.unique()]
-new_corrMatrix = new_corrMatrix.loc[csv_df.localization.unique()]
-loc_dx_corr = sns.heatmap(new_corrMatrix, annot=True, 
-                          annot_kws={"size": 6}, cmap="YlGnBu")
-loc_dx_corr.set_yticklabels(loc_dx_corr.get_yticklabels(), rotation=45)
-plt.savefig(charts_path + '\\Shrink loc dx Corr matrix.png', dpi=300)
-
-# Print the max and min correlations for each lesion type
-for i in new_corrMatrix:
-    print('max % in', i, 'is', max(new_corrMatrix[i]),
-          'and min % is', min(new_corrMatrix[i]))
-          
 
 
 # =========================================================================

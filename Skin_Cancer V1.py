@@ -145,7 +145,7 @@ DataUpload.Read_CSV() # read the csv file
 DataUpload.Get_Image_Paths() # append the path of each image to the csv dataframe
 DataUpload.Import_Images_to_DataFrame() # append the matrix for each image (32*32) to the main dataframe
 #DataUpload.Save_Data() # save the full data in one csv file
-#csv_df = DataUpload.recall_dataframe(0) # Store the dataframe in a new object
+csv_df = DataUpload.recall_dataframe(0) # Store the dataframe in a new object
 DataUpload.Sample_Images() #Print 5 sample images for each lesion type
 
 

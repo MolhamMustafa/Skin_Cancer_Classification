@@ -196,9 +196,12 @@ class Descriptive_Analysis:
     # to avoid saving the image in local drive, set "save_folder_path" = 0
     # NOTE: enter the folder path like this --> r'path'
     #
-    def Des_Graphs_Num (self, column, filters, graph_title, save_folder_path):
+    def Des_Graphs_Num (self, column, filters, graph_title, save_folder_path, Title_Font_Size, Bar_Colour, XY_Font_Size):
         if column == 0 or column == 1:
             print('This fuction acts on a single feature only')
+                            # Define the bars colours
+        if Bar_Colour == 0:
+            Bar_Colour = (0.2, 0.4, 0.6, 0.6)
         else:
             if str(DataUpload.recall_dataframe(column).dtypes[0]) != 'object':
                 if filters == 0:
@@ -214,14 +217,17 @@ class Descriptive_Analysis:
                     else:
                         self.title = graph_title
                     
-                    sns.distplot(DataUpload.recall_dataframe(column), color= 'green',
+                    sns.distplot(DataUpload.recall_dataframe(column), color= Bar_Colour,
                     hist_kws=dict(edgecolor="black", linewidth=1))
-                    plt.title(self.title)
+                    plt.title(self.title, fontsize = Title_Font_Size)
+                    plt.xticks(fontsize = XY_Font_Size)
+                    plt.yticks(fontsize = XY_Font_Size)
                     
                     # Set the save condition
                     if save_folder_path != 0:
                         plt.savefig(save_folder_path + '\\{v} distplot.png'.format(v = column), dpi=300)
                         print('Graph saved undel the title:', '\\{v} distplot.png'.format(v = column))
+                    plt.clf()
 
                         
                 else:
@@ -239,9 +245,11 @@ class Descriptive_Analysis:
                         else:
                             self.title = f + graph_title
                         
-                        sns.distplot(DataUpload.recall_dataframe(0)[DataUpload.recall_dataframe(0)[filters] == f][column], color= 'green',
+                        sns.distplot(DataUpload.recall_dataframe(0)[DataUpload.recall_dataframe(0)[filters] == f][column], color= Bar_Colour,
                         hist_kws=dict(edgecolor="black", linewidth=1))
-                        plt.title(self.title)
+                        plt.title(self.title, fontsize = Title_Font_Size)
+                        plt.xticks(fontsize = XY_Font_Size)
+                        plt.yticks(fontsize = XY_Font_Size)
                         
                         # Set the save condition
                         if save_folder_path != 0:
@@ -255,7 +263,7 @@ class Descriptive_Analysis:
     # Descriptive analysis for categorical data
     # Same features as the previous one, but deals with categorical data
     #
-    def Des_Graphs_Cat(self, column, filters, graph_title, save_folder_path, Title_Font_Size):
+    def Des_Graphs_Cat(self, column, filters, graph_title, save_folder_path, Bar_Colour, Title_Font_Size, XY_Font_Size, Values_Font_Size):
         
         # define the graph lables
         self.labels = DataUpload.recall_dataframe(1)[column].value_counts().index.tolist()
@@ -270,14 +278,24 @@ class Descriptive_Analysis:
         # Bar chart
         #
         
+        # Adjust the colour
+        if Bar_Colour == 0:
+            Bar_Colour = (0.2, 0.4, 0.6, 0.6)
+        
         # auto set x labels fontsize
         if len(self.labels) > 7:
-            mpl.rcParams['font.size'] = 7.0
+            mpl.rcParams['font.size'] = 10.0
             f, ax = plt.subplots(figsize=(13,5))
-        plt.bar(self.labels,DataUpload.recall_dataframe(1)[column].value_counts(), color = 'green', ec = 'black')
+            x_rotation = 25
+        else:
+             x_rotation = 0
+            
+        plt.bar(self.labels,DataUpload.recall_dataframe(1)[column].value_counts(), color = Bar_Colour, ec = 'black')
+        plt.xticks(rotation = x_rotation, fontsize = XY_Font_Size)
+        plt.yticks(fontsize = XY_Font_Size)
         for i in range(len(self.labels)):
             plt.text(i,DataUpload.recall_dataframe(1)[column].value_counts()[i], DataUpload.recall_dataframe(1)[column].value_counts() [i],
-             ha = 'center', va = 'bottom')
+             ha = 'center', va = 'bottom', fontsize = Values_Font_Size)
         #plt.ylim([0,7500])
         plt.title(self.title, fontsize = Title_Font_Size)
         plt.savefig(save_folder_path + '\\{v} frequency.png'.format(v = column), dpi=300)
@@ -291,18 +309,20 @@ class Descriptive_Analysis:
         # auto set the lable sizes
         if len(self.labels) > 7:
             mpl.rcParams['font.size'] = 6.0 # set the test size
-        plt.pie(DataUpload.recall_dataframe(1)[column].value_counts(), labels = self.labels, autopct='%1.1f%%')
+        ###########################################################################################
+        plt.pie(DataUpload.recall_dataframe(1)[column].value_counts(), labels = self.labels, autopct='%1.1f%%', textprops={'fontsize': Values_Font_Size})
         plt.title(self.title + ' Pie Chart', fontsize = Title_Font_Size)
         #plt.title('Proportion of each Localization')
         plt.savefig(save_folder_path + '\\{v} pie chart.png'.format(v = column), dpi=300)
         print('Graph saved undel the title:', '\\{v} pie chart.png'.format(v = column))
+        plt.clf()
 
 
     ##
     # Doing correlation matrix for all the data features
     #
     
-    def Overall_Correlations(self, save_folder_path):
+    def Overall_Correlations(self, save_folder_path, Font_Size):
         
         # create the correlation dataset (subset from the original data)
         self.corr_df = DataUpload.recall_dataframe(1)[['dx', 'dx_type', 'age', 'sex','localization']]
@@ -328,10 +348,18 @@ class Descriptive_Analysis:
             
         self.corr_df.columns = self.new_headers # adjsut the table column names
         
+        
         # Drow the graph
         self.corr_mat = sns.heatmap(self.corr_df.corr(), annot = True
                     ,cmap = "YlGnBu")
         self.corr_mat.set_yticklabels(self.corr_mat.get_yticklabels(), rotation=45)
+        
+        self.corr_mat.set_xticklabels(self.corr_mat.get_xmajorticklabels(), fontsize = Font_Size) # adjust x axis font
+        
+        self.corr_mat.set_yticklabels(self.corr_mat.get_yticklabels(), rotation=45, fontsize = Font_Size) # adjust y axis format
+        
+        self.corr_mat.set_title('All features Correlation Matrix')
+        
         if save_folder_path != 0:
             plt.savefig(save_folder_path + '\\Overall Corr. Matrix.png', dpi=300)
         plt.clf()
@@ -340,7 +368,7 @@ class Descriptive_Analysis:
     # Correlation between each lesion type and the localization
     #
     
-    def dx_localization_Correlations (self, save_folder_path):
+    def dx_localization_Correlations (self, save_folder_path, Font_Size, colours):
         # Create the dummy variables for localization and dx
         self.localization_dx = pd.get_dummies(DataUpload.recall_dataframe(1)[['dx','localization']])
         
@@ -378,12 +406,21 @@ class Descriptive_Analysis:
         # Shrinked matrix
         self.new_corrMatrix = self.corrMatrix[DataUpload.recall_dataframe(1).dx.unique()]
         self.new_corrMatrix = self.new_corrMatrix.loc[DataUpload.recall_dataframe(1).localization.unique()]
+
+        # Auto define the values fontsize
+        values_fontsize = (len(DataUpload.recall_dataframe(1).dx.unique()) * len(DataUpload.recall_dataframe(1).localization.unique()))/6
+
         self.loc_dx_corr = sns.heatmap(self.new_corrMatrix, annot=True, 
-                                  annot_kws={"size": 6}, cmap="YlGnBu")
+                                  annot_kws={"size": values_fontsize}, cmap=colours, cbar =False) # annot_kws set the font size inside the table
+        self.loc_dx_corr.set_xticklabels(self.loc_dx_corr.get_xmajorticklabels(), fontsize = Font_Size) # adjust x axis font
         
-        self.loc_dx_corr.set_yticklabels(self.loc_dx_corr.get_yticklabels(), rotation=45)
+        self.loc_dx_corr.set_yticklabels(self.loc_dx_corr.get_yticklabels(), rotation=45, fontsize = Font_Size) # adjust y axis format
+        
+        self.loc_dx_corr.set_title('Lesion Types to Localizations Correlations')
+        
         if save_folder_path != 0:
-            plt.savefig(save_folder_path + '\\Shrink loc dx Corr matrix.png', dpi=300)
+            plt.savefig(save_folder_path + '\\Lesion Types to Localization Correlations.png', dpi=300)
+        plt.clf()
         
         # Print the max and min correlations for each lesion type
         for i in self.new_corrMatrix:
@@ -394,12 +431,12 @@ class Descriptive_Analysis:
 
 DesAnalysis = Descriptive_Analysis()
 DesAnalysis.Data_Exploration('localization')
-DesAnalysis.Des_Graphs_Num('age','sex' ,0, Figures_path) # Descriptive analysis graph for numerical features
-DesAnalysis.Des_Graphs_Cat('dx_type',0 ,0, Figures_path, 8) # # Descriptive analysis graph for categorical features
-DesAnalysis.Overall_Correlations(Figures_path) # Overall correlation matrix
-DesAnalysis.dx_localization_Correlations(Figures_path) # Correlation matrix focused on dx and localization only
+DesAnalysis.Des_Graphs_Num('age','sex' ,0, Figures_path, 23, 0, 15) # Descriptive analysis graph for numerical features
+DesAnalysis.Des_Graphs_Cat('dx',0 ,0, Figures_path, 0, 20, 25, 17) # Descriptive analysis graph for categorical features
+DesAnalysis.Overall_Correlations(Figures_path, 23) # Overall correlation matrix
+DesAnalysis.dx_localization_Correlations(Figures_path, 20, "coolwarm") # Correlation matrix focused on dx and localization only
 
-
+#YlGnBu
 
 ##
 # Getting the main statistics for age after removing the 0s and null values
